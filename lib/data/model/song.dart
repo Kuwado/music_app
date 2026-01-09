@@ -28,4 +28,17 @@ class Song {
       duration: map['duration'],
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Song && runtimeType == other.runtimeType && id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
+
+  @override
+  String toString() {
+    return 'Song - id: $id, title: $title, album: $album, artist: $artist, source: $source, image: $image, duration: $duration';
+  }
 }
