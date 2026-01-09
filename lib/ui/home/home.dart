@@ -1,8 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:music_app/ui/discovery/discovery.dart';
+import 'package:music_app/ui/home/viewmodel.dart';
 import 'package:music_app/ui/settings/settings.dart';
 import 'package:music_app/ui/user/user.dart';
+
+import '../../data/model/song.dart';
 
 class MusicApp extends StatelessWidget {
   const MusicApp({super.key});
@@ -71,6 +74,112 @@ class HomeTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: Text('Home page')));
+    return const HomeTabPage();
+  }
+}
+
+// Placeholder for HomeTabPage
+class HomeTabPage extends StatefulWidget {
+  const HomeTabPage({super.key});
+
+  @override
+  State<HomeTabPage> createState() => _HomeTabPageState();
+}
+
+class _HomeTabPageState extends State<HomeTabPage> {
+  List<Song> songs = [];
+  late MusicAppViewModel _viewModel;
+
+  @override
+  void initState() {
+    super.initState();
+    _viewModel = MusicAppViewModel();
+    _viewModel.loadSongs();
+    observeData();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(body: getBody());
+  }
+
+  @override
+  void dispose() {
+    _viewModel.songStream.close();
+    super.dispose();
+  }
+
+  Widget getBody() {
+    bool showLoading = songs.isEmpty;
+    if (showLoading) {
+      return getProgressBar();
+    } else {
+      return getListView();
+    }
+  }
+
+  Widget getProgressBar() {
+    return const Center(child: CircularProgressIndicator());
+  }
+
+  ListView getListView() {
+    return ListView.separated(
+      itemBuilder: (context, position) {
+        return getRow(position);
+      },
+      separatorBuilder: (context, index) {
+        return const Divider(
+          color: Colors.grey,
+          thickness: 1,
+          indent: 24,
+          endIndent: 24,
+        );
+      },
+      itemCount: songs.length,
+      shrinkWrap: true,
+    );
+  }
+
+  Widget getRow(int position) {
+    return _SongItemSection(parent: this, song: songs[position]);
+  }
+
+  void observeData() {
+    _viewModel.songStream.stream.listen((songList) {
+      setState(() {
+        songs.addAll(songList);
+      });
+    });
+  }
+}
+
+class _SongItemSection extends StatelessWidget {
+  final _HomeTabPageState parent;
+  final Song song;
+
+  const _SongItemSection({required this.parent, required this.song});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: ClipOval(
+        child: FadeInImage.assetNetwork(
+          placeholder: 'assets/music.png',
+          image: song.image,
+          width: 50,
+          height: 50,
+          imageErrorBuilder: (context, error, stackTrace) {
+            return Image.asset('assets/music.png', width: 50, height: 50);
+          },
+        ),
+      ),
+
+      title: Text(song.title),
+      subtitle: Text(song.artist),
+      trailing: IconButton(
+        icon: const Icon(Icons.more_horiz),
+        onPressed: () {},
+      ),
+    );
   }
 }
