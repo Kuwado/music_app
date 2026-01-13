@@ -4,6 +4,7 @@ import 'package:music_app/data/model/song.dart';
 import 'package:music_app/ui/home/bottom_sheet.dart';
 import 'package:music_app/ui/home/song_item.dart';
 import 'package:music_app/ui/home/viewmodel.dart';
+import 'package:music_app/ui/now_playing/audio_player_manager.dart';
 import 'package:music_app/ui/now_playing/playing_page.dart';
 
 class HomeTab extends StatelessWidget {
@@ -43,6 +44,7 @@ class _HomeTabPageState extends State<HomeTabPage> {
   @override
   void dispose() {
     _viewModel.songStream.close();
+    AudioPlayerManager().dispose();
     super.dispose();
   }
 

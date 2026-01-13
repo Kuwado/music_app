@@ -1,5 +1,8 @@
+import 'dart:math';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:music_app/ui/now_playing/audio_player_manager.dart';
 import 'package:music_app/ui/now_playing/media_buttons.dart';
 import 'package:music_app/ui/now_playing/name_bar.dart';
@@ -34,14 +37,30 @@ class NowPlayingPage extends StatefulWidget {
 
 class _NowPlayingPageState extends State<NowPlayingPage> {
   late AudioPlayerManager _audioPlayerManager;
+  late int _selectedItemIndex;
+  late Song _song;
+  bool _isPlaying = false;
+  bool _isShuffled = false;
+  late LoopMode _loopMode;
 
   @override
   void initState() {
     super.initState();
-    _audioPlayerManager = AudioPlayerManager(
-      songUrl: widget.playingSong.source,
-    );
-    _audioPlayerManager.init();
+    _song = widget.playingSong;
+    _audioPlayerManager = AudioPlayerManager();
+    if (_audioPlayerManager.songUrl.compareTo(_song.source) != 0) {
+      _audioPlayerManager.songUrl = _song.source;
+      _audioPlayerManager.init(isNewSong: true);
+    } else {
+      _audioPlayerManager.init();
+    }
+    _selectedItemIndex = widget.songs.indexOf(widget.playingSong);
+    _audioPlayerManager.player.playingStream.listen((playing) {
+      setState(() {
+        _isPlaying = playing;
+      });
+    });
+    _loopMode = LoopMode.off;
   }
 
   @override
@@ -65,7 +84,7 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                widget.playingSong.album,
+                _song.album,
                 // style: Theme.of(context).textTheme.headlineMedium,
               ),
               const SizedBox(height: 16),
@@ -73,34 +92,104 @@ class _NowPlayingPageState extends State<NowPlayingPage> {
               const SizedBox(height: 48),
               // Rotating Music Widget
               RotatingMusic(
-                imageUrl: widget.playingSong.image,
+                imageUrl: _song.image,
                 size: screenWidth - delta,
                 radius: radius,
+                // player: _audioPlayerManager.player,
+                isPlaying: _isPlaying,
+                key: ValueKey(_song.id),
               ),
 
               // Name bar
-              NameBar(
-                title: widget.playingSong.title,
-                artist: widget.playingSong.artist,
-              ),
+              NameBar(title: _song.title, artist: _song.artist),
 
               // Progress bar
               AudioProgressBar(
                 durationStateStream: _audioPlayerManager.durationState,
+                player: _audioPlayerManager.player,
               ),
 
               // Media control buttons
               MediaButtons(
-                onShuffle: () {},
-                onPrevious: () {},
-                onPlayPause: () {},
-                onNext: () {},
-                onRepeat: () {},
+                player: _audioPlayerManager.player,
+                onShuffle: () => _setSuffle(),
+                onPrevious: () => _setPrevSong(),
+                onNext: () => _setNextSong(),
+                onRepeat: () => _setRepeatOption(),
+                isShuffled: _isShuffled,
+                loopMode: _loopMode,
               ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    // _audioPlayerManager.dispose();
+    super.dispose();
+  }
+
+  void _setNextSong() {
+    if (_isShuffled) {
+      var random = Random();
+      _selectedItemIndex = random.nextInt(widget.songs.length);
+    } else if (_selectedItemIndex < widget.songs.length - 1) {
+      ++_selectedItemIndex;
+    } else if (_loopMode == LoopMode.all &&
+        _selectedItemIndex == widget.songs.length - 1) {
+      _selectedItemIndex = 0;
+    }
+
+    if (_selectedItemIndex >= widget.songs.length) {
+      _selectedItemIndex = _selectedItemIndex % widget.songs.length;
+    }
+    final nextSong = widget.songs[_selectedItemIndex];
+    _audioPlayerManager.updateSong(nextSong.source);
+    setState(() {
+      _song = nextSong;
+    });
+  }
+
+  void _setPrevSong() {
+    if (_isShuffled) {
+      var random = Random();
+      _selectedItemIndex = random.nextInt(widget.songs.length);
+    } else if (_selectedItemIndex > 0) {
+      --_selectedItemIndex;
+    } else if (_loopMode == LoopMode.all && _selectedItemIndex == 0) {
+      _selectedItemIndex = widget.songs.length - 1;
+    }
+
+    if (_selectedItemIndex < 0) {
+      _selectedItemIndex = -1 * _selectedItemIndex % widget.songs.length;
+    }
+    final nextSong = widget.songs[_selectedItemIndex];
+    _audioPlayerManager.updateSong(nextSong.source);
+    setState(() {
+      _song = nextSong;
+    });
+  }
+
+  void _setSuffle() {
+    setState(() {
+      _isShuffled = !_isShuffled;
+    });
+    _audioPlayerManager.player.setShuffleModeEnabled(_isShuffled);
+  }
+
+  void _setRepeatOption() {
+    if (_loopMode == LoopMode.off) {
+      _loopMode = LoopMode.one;
+    } else if (_loopMode == LoopMode.one) {
+      _loopMode = LoopMode.all;
+    } else {
+      _loopMode = LoopMode.off;
+    }
+    setState(() {
+      _audioPlayerManager.player.setLoopMode(_loopMode);
+    });
   }
 }
