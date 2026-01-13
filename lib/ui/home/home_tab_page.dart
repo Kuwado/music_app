@@ -4,7 +4,7 @@ import 'package:music_app/data/model/song.dart';
 import 'package:music_app/ui/home/bottom_sheet.dart';
 import 'package:music_app/ui/home/song_item.dart';
 import 'package:music_app/ui/home/viewmodel.dart';
-import 'package:music_app/ui/now_playing/playing.dart';
+import 'package:music_app/ui/now_playing/playing_page.dart';
 
 class HomeTab extends StatelessWidget {
   const HomeTab({super.key});
